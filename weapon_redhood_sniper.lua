@@ -55,25 +55,20 @@ function SWEP:Equip(owner)
     end
 end
 
-function SWEP:GetViewModelPosition(pos, ang)
-    -- Move the gun slightly forward and right, adjust the angle a bit so it looks natural
-    pos = pos + ang:Forward() * 10   -- Move 5 units forward
-    pos = pos + ang:Right() * 15     -- Move 2 units to the right
-    pos = pos + ang:Up() * -18      -- Move 2 units down (negative up)
-
-    ang:RotateAroundAxis(ang:Right(), -5)   -- Tilt gun slightly down
-    ang:RotateAroundAxis(ang:Up(), 10)      -- Rotate gun a bit to the right
-
-    return pos, ang
-end
+SWEP.ADS = false
+SWEP.ADSFOV = 45       -- FOV when aiming down sights
+SWEP.NormalFOV = 90    -- normal FOV
+SWEP.ADSPos = Vector(-2, 0, 1)   -- ADS gun position offset
+SWEP.ADSAng = Angle(0, 0, 0)     -- ADS gun angle offset
 
 function SWEP:PrimaryAttack()
     if not self:CanPrimaryAttack() then return end
 
+    local owner = self:GetOwner()
     local bullet = {}
     bullet.Num = 1
-    bullet.Src = self:GetOwner():GetShootPos()
-    bullet.Dir = self:GetOwner():GetAimVector()
+    bullet.Src = owner:GetShootPos()
+    bullet.Dir = owner:GetAimVector()
     bullet.Spread = Vector(0, 0, 0)
     bullet.Tracer = 1
     bullet.TracerName = "LaserTracer"
@@ -81,47 +76,33 @@ function SWEP:PrimaryAttack()
     bullet.Damage = self.Primary.Damage
 
     bullet.Callback = function(attacker, tr, dmginfo)
+        -- Prevent owner from taking damage from bullet
+        if tr.Entity == attacker then
+            dmginfo:SetDamage(0)
+            return true
+        end
+
         local effectdata = EffectData()
         effectdata:SetOrigin(tr.HitPos)
         util.Effect("Explosion", effectdata)
 
-        util.BlastDamage(attacker, attacker, tr.HitPos, 150, self.Primary.Damage)
+        -- Custom blast damage that ignores attacker
+        for _, ent in pairs(ents.FindInSphere(tr.HitPos, 150)) do
+            if IsValid(ent) and ent ~= attacker then
+                local dmg = DamageInfo()
+                dmg:SetDamage(self.Primary.Damage)
+                dmg:SetAttacker(attacker)
+                dmg:SetInflictor(self)
+                dmg:SetDamageType(DMG_BLAST)
+                ent:TakeDamageInfo(dmg)
+            end
+        end
     end
 
-    self:GetOwner():FireBullets(bullet)
+    owner:FireBullets(bullet)
     self:TakePrimaryAmmo(1)
     self:SetNextPrimaryFire(CurTime() + self.Primary.Delay)
 end
-
-function SWEP:SecondaryAttack()
-    -- Optional zoom or alt fire
-end
-
-function SWEP:DrawWorldModel()
-    local ply = self:GetOwner()
-    if IsValid(ply) then
-        local bone = ply:LookupBone("ValveBiped.Bip01_R_Hand")
-        if not bone then return end
-
-        local pos, ang = ply:GetBonePosition(bone)
-
-        pos = pos + ang:Forward() * 3 + ang:Right() * 1 + ang:Up() * 4
-        ang:RotateAroundAxis(ang:Right(), 175)
-        ang:RotateAroundAxis(ang:Up(), 185)
-
-        self:SetRenderOrigin(pos)
-        self:SetRenderAngles(ang)
-    end
-
-    self:DrawModel()
-end
-
--- Add these at the top with your other variables:
-SWEP.ADS = false
-SWEP.ADSFOV = 45       -- how much FOV zoom when aiming down sights
-SWEP.NormalFOV = 90    -- your normal viewmodel FOV
-SWEP.ADSPos = Vector(-2, 0, 1)   -- tweak this vector to move gun closer to center when aiming
-SWEP.ADSAng = Angle(0, 0, 0)     -- tweak this for gun angle when aiming
 
 function SWEP:SecondaryAttack()
     if self.ADS then
@@ -153,7 +134,7 @@ function SWEP:GetViewModelPosition(pos, ang)
         pos = pos + self.ADSPos
         ang = ang + self.ADSAng
     else
-        -- Your original position adjustments here, for example:
+        -- Your original position adjustments here
         pos = pos + ang:Forward() * 10
         pos = pos + ang:Right() * 13
         pos = pos + ang:Up() * -16
@@ -163,4 +144,23 @@ function SWEP:GetViewModelPosition(pos, ang)
     end
 
     return pos, ang
+end
+
+function SWEP:DrawWorldModel()
+    local ply = self:GetOwner()
+    if IsValid(ply) then
+        local bone = ply:LookupBone("ValveBiped.Bip01_R_Hand")
+        if not bone then return end
+
+        local pos, ang = ply:GetBonePosition(bone)
+
+        pos = pos + ang:Forward() * 3 + ang:Right() * 1 + ang:Up() * 4
+        ang:RotateAroundAxis(ang:Right(), 175)
+        ang:RotateAroundAxis(ang:Up(), 185)
+
+        self:SetRenderOrigin(pos)
+        self:SetRenderAngles(ang)
+    end
+
+    self:DrawModel()
 end
