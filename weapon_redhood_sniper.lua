@@ -12,16 +12,22 @@ SWEP.Category = "Red Hood"
 
 SWEP.HoldType = "ar2"
 
-SWEP.UseHands = false  -- Disable default hands since we're forcing worldmodel
+function SWEP:Reload()
+    if self:Clip1() < self.Primary.ClipSize and self:Ammo1() > 0 then
+        self:DefaultReload(ACT_VM_RELOAD)
+        self:SetNextPrimaryFire(CurTime() + 2)  -- Reload cooldown here
+    end
+end
 
-SWEP.ViewModel = "models/canofsoda/nikke/sniper.mdl"  -- worldmodel path as viewmodel
+SWEP.UseHands = true
+SWEP.ViewModel = "models/canofsoda/nikke/sniper.mdl"  -- Your actual viewmodel if you want
 SWEP.WorldModel = "models/canofsoda/nikke/sniper.mdl"
 
-SWEP.ViewModelFOV = 60
+SWEP.ViewModelFOV = 90
 SWEP.ViewModelFlip = false
 
 SWEP.Primary.ClipSize = 18
-SWEP.Primary.DefaultClip = -1
+SWEP.Primary.DefaultClip = -1  -- Prevent GMod from setting this weirdly
 SWEP.Primary.Automatic = true
 SWEP.Primary.Ammo = "SMG1"
 
@@ -79,25 +85,21 @@ function SWEP:SecondaryAttack()
     -- Optional zoom or alt fire
 end
 
--- Override to draw worldmodel in first person attached to view
-function SWEP:ViewModelDrawn()
-    if CLIENT then
-        local vm = self.Owner:GetViewModel()
-        if IsValid(vm) then
-            vm:SetNoDraw(true) -- Hide default viewmodel to avoid double drawing
-        end
-
-        -- Draw the world model attached to the player's view origin
-        self:SetRenderOrigin(self.Owner:EyePos() + self.Owner:EyeAngles():Forward() * 10 + self.Owner:EyeAngles():Right() * 4 + self.Owner:EyeAngles():Up() * -4)
-        self:SetRenderAngles(self.Owner:EyeAngles())
-        self:DrawModel()
-    end
-end
-
--- Disable the normal DrawWorldModel so we don't double draw in third person
 function SWEP:DrawWorldModel()
-    -- Optional: keep drawing the worldmodel in third person or not
-    if not self.Owner or not IsValid(self.Owner) or self.Owner ~= LocalPlayer() then
-        self:DrawModel()
+    local ply = self:GetOwner()
+    if IsValid(ply) then
+        local bone = ply:LookupBone("ValveBiped.Bip01_R_Hand")
+        if not bone then return end
+
+        local pos, ang = ply:GetBonePosition(bone)
+
+        pos = pos + ang:Forward() * 3 + ang:Right() * 1 + ang:Up() * 4
+        ang:RotateAroundAxis(ang:Right(), 175)
+        ang:RotateAroundAxis(ang:Up(), 185)
+
+        self:SetRenderOrigin(pos)
+        self:SetRenderAngles(ang)
     end
+
+    self:DrawModel()
 end
