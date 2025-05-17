@@ -12,51 +12,53 @@ SWEP.Category = "Red Hood"
 
 SWEP.HoldType = "ar2"
 
-function SWEP:Reload()
-    if self:Clip1() < self.Primary.ClipSize and self:Ammo1() > 0 then
-        self:DefaultReload(ACT_VM_RELOAD)
-        self:SetNextPrimaryFire(CurTime() + 2)
-    end
-end
+SWEP.UseHands = false  -- Disable default hands since we're forcing worldmodel
 
-SWEP.UseHands = true
-SWEP.ViewModel = "models/weapons/c_snip_awp.mdl"
+SWEP.ViewModel = "models/canofsoda/nikke/sniper.mdl"  -- worldmodel path as viewmodel
 SWEP.WorldModel = "models/canofsoda/nikke/sniper.mdl"
 
 SWEP.ViewModelFOV = 60
 SWEP.ViewModelFlip = false
 
-SWEP.Primary.ClipSize = 12
-SWEP.Primary.DefaultClip = 12
-SWEP.Primary.Automatic = true  -- full auto enabled
+SWEP.Primary.ClipSize = 18
+SWEP.Primary.DefaultClip = -1
+SWEP.Primary.Automatic = true
 SWEP.Primary.Ammo = "SMG1"
 
-SWEP.Primary.Delay = 0.2      -- faster fire rate for auto
+SWEP.Primary.Delay = 0.25
 SWEP.Primary.Damage = 1000
 SWEP.Primary.Recoil = 1
 
 function SWEP:Initialize()
     self:SetHoldType(self.HoldType)
+
     if SERVER then
-        local owner = self:GetOwner()
-        if IsValid(owner) then
-            owner:GiveAmmo(1000, self.Primary.Ammo, true) -- 1000 reserve ammo added on spawn
-        end
+        timer.Simple(0, function()
+            if not IsValid(self) then return end
+            local owner = self:GetOwner()
+            if IsValid(owner) and owner:IsPlayer() then
+                owner:GiveAmmo(1000, self.Primary.Ammo, true)
+            end
+        end)
+    end
+end
+
+function SWEP:Equip(owner)
+    if SERVER and IsValid(owner) and owner:IsPlayer() then
+        owner:GiveAmmo(1000, self.Primary.Ammo, true)
     end
 end
 
 function SWEP:PrimaryAttack()
     if not self:CanPrimaryAttack() then return end
 
-    self:EmitSound("Weapon_SMG1.Launch")  -- laser-like sound
-
     local bullet = {}
     bullet.Num = 1
     bullet.Src = self:GetOwner():GetShootPos()
     bullet.Dir = self:GetOwner():GetAimVector()
-    bullet.Spread = Vector(0, 0, 0)  -- no spread, shoots straight
+    bullet.Spread = Vector(0, 0, 0)
     bullet.Tracer = 1
-    bullet.TracerName = "LaserTracer"  -- red laser trail
+    bullet.TracerName = "LaserTracer"
     bullet.Force = 10
     bullet.Damage = self.Primary.Damage
 
@@ -74,26 +76,28 @@ function SWEP:PrimaryAttack()
 end
 
 function SWEP:SecondaryAttack()
-    -- Optional zoom or alternate fire code here later
+    -- Optional zoom or alt fire
 end
 
--- Adjust how the gun is held in 3rd person (world model)
-function SWEP:DrawWorldModel()
-    local ply = self:GetOwner()
-    if IsValid(ply) then
-        local bone = ply:LookupBone("ValveBiped.Bip01_R_Hand")
-        if not bone then return end
+-- Override to draw worldmodel in first person attached to view
+function SWEP:ViewModelDrawn()
+    if CLIENT then
+        local vm = self.Owner:GetViewModel()
+        if IsValid(vm) then
+            vm:SetNoDraw(true) -- Hide default viewmodel to avoid double drawing
+        end
 
-        local pos, ang = ply:GetBonePosition(bone)
-
-        -- Adjust these numbers to fine-tune the weapon's position
-        pos = pos + ang:Forward() * 3 + ang:Right() * 1 + ang:Up() * 4
-        ang:RotateAroundAxis(ang:Right(), 175)
-        ang:RotateAroundAxis(ang:Up(), 185)
-
-        self:SetRenderOrigin(pos)
-        self:SetRenderAngles(ang)
+        -- Draw the world model attached to the player's view origin
+        self:SetRenderOrigin(self.Owner:EyePos() + self.Owner:EyeAngles():Forward() * 10 + self.Owner:EyeAngles():Right() * 4 + self.Owner:EyeAngles():Up() * -4)
+        self:SetRenderAngles(self.Owner:EyeAngles())
+        self:DrawModel()
     end
+end
 
-    self:DrawModel()
+-- Disable the normal DrawWorldModel so we don't double draw in third person
+function SWEP:DrawWorldModel()
+    -- Optional: keep drawing the worldmodel in third person or not
+    if not self.Owner or not IsValid(self.Owner) or self.Owner ~= LocalPlayer() then
+        self:DrawModel()
+    end
 end
