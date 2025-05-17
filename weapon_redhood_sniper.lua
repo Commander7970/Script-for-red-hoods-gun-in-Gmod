@@ -158,8 +158,8 @@ function SWEP:GetViewModelPosition(pos, ang)
         pos = pos + ang:Right() * 13
         pos = pos + ang:Up() * -16
 
-        ang:RotateAroundAxis(ang:Right(), -10)
-        ang:RotateAroundAxis(ang:Up(), 15)
+        ang:RotateAroundAxis(ang:Right(), 0)
+        ang:RotateAroundAxis(ang:Up(), 0)
     end
 
     return pos, ang
