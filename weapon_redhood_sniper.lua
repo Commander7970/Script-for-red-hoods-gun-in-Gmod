@@ -20,14 +20,14 @@ function SWEP:Reload()
 end
 
 SWEP.UseHands = true
-SWEP.ViewModel = "models/canofsoda/nikke/sniper.mdl" -- Your sniper model
+SWEP.ViewModel = "models/canofsoda/nikke/sniper.mdl"
 SWEP.WorldModel = "models/canofsoda/nikke/sniper.mdl"
 
 SWEP.ViewModelFOV = 90
 SWEP.ViewModelFlip = false
 
 SWEP.Primary.ClipSize = 18
-SWEP.Primary.DefaultClip = -1  -- Prevent GMod from setting weird default clip
+SWEP.Primary.DefaultClip = -1
 SWEP.Primary.Automatic = true
 SWEP.Primary.Ammo = "SMG1"
 
@@ -56,10 +56,10 @@ function SWEP:Equip(owner)
 end
 
 SWEP.ADS = false
-SWEP.ADSFOV = 45       -- FOV when aiming down sights
-SWEP.NormalFOV = 90    -- normal FOV
-SWEP.ADSPos = Vector(-2, 0, 1)   -- ADS gun position offset
-SWEP.ADSAng = Angle(0, 0, 0)     -- ADS gun angle offset
+SWEP.ADSFOV = 45    
+SWEP.NormalFOV = 90   
+SWEP.ADSPos = Vector(-2, 0, 1)   
+SWEP.ADSAng = Angle(0, 0, 0)    
 
 function SWEP:PrimaryAttack()
     if not self:CanPrimaryAttack() then return end
@@ -76,7 +76,7 @@ function SWEP:PrimaryAttack()
     bullet.Damage = self.Primary.Damage
 
     bullet.Callback = function(attacker, tr, dmginfo)
-        -- Prevent owner from taking damage from bullet
+       
         if tr.Entity == attacker then
             dmginfo:SetDamage(0)
             return true
@@ -86,7 +86,7 @@ function SWEP:PrimaryAttack()
         effectdata:SetOrigin(tr.HitPos)
         util.Effect("Explosion", effectdata)
 
-        -- Custom blast damage that ignores attacker
+   
         for _, ent in pairs(ents.FindInSphere(tr.HitPos, 150)) do
             if IsValid(ent) and ent ~= attacker then
                 local dmg = DamageInfo()
@@ -110,7 +110,7 @@ function SWEP:SecondaryAttack()
     else
         self:EnterADS()
     end
-    self:SetNextSecondaryFire(CurTime() + 0.3) -- debounce right click
+    self:SetNextSecondaryFire(CurTime() + 0.3)
 end
 
 function SWEP:EnterADS()
@@ -118,7 +118,7 @@ function SWEP:EnterADS()
     if not IsValid(owner) or not owner:IsPlayer() then return end
 
     self.ADS = true
-    owner:SetFOV(self.ADSFOV, 0.2)  -- zoom in over 0.2 seconds
+    owner:SetFOV(self.ADSFOV, 0.2) 
 end
 
 function SWEP:ExitADS()
@@ -126,7 +126,7 @@ function SWEP:ExitADS()
     if not IsValid(owner) or not owner:IsPlayer() then return end
 
     self.ADS = false
-    owner:SetFOV(self.NormalFOV, 0.2)  -- zoom back out over 0.2 seconds
+    owner:SetFOV(self.NormalFOV, 0.2)
 end
 
 function SWEP:GetViewModelPosition(pos, ang)
@@ -134,7 +134,7 @@ function SWEP:GetViewModelPosition(pos, ang)
         pos = pos + self.ADSPos
         ang = ang + self.ADSAng
     else
-        -- Your original position adjustments here
+
         pos = pos + ang:Forward() * 10
         pos = pos + ang:Right() * 13
         pos = pos + ang:Up() * -16
